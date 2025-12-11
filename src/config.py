@@ -23,3 +23,47 @@ PROC_DISTRIBUTION = "exp" # options: 'exp', 'det'
 # Output paths
 RESULTS_CSV = "results.csv"
 STATS_CSV = "machine_stats.csv"
+
+
+# Optimization Scenarios
+OPTIMIZATION_SCENARIOS = {
+    'baseline': {
+        'name': 'Baseline',
+        'machines': MACHINES,
+        'interarrival_mean': INTERARRIVAL_MEAN,
+        'cost': 0  # relative cost
+    },
+    'add_drilling': {
+        'name': 'Add Drilling Machine',
+        'machines': [
+            {"name": "Cutting", "capacity": 1, "proc_mean": 3.0},
+            {"name": "Drilling", "capacity": 2, "proc_mean": 4.5},  # +1 capacity
+            {"name": "Assembly", "capacity": 2, "proc_mean": 6.0},
+            {"name": "Painting", "capacity": 1, "proc_mean": 2.5},
+        ],
+        'interarrival_mean': INTERARRIVAL_MEAN,
+        'cost': 100  # relative cost units
+    },
+    'add_assembly': {
+        'name': 'Add Assembly Machine',
+        'machines': [
+            {"name": "Cutting", "capacity": 1, "proc_mean": 3.0},
+            {"name": "Drilling", "capacity": 1, "proc_mean": 4.5},
+            {"name": "Assembly", "capacity": 3, "proc_mean": 6.0},  # +1 capacity
+            {"name": "Painting", "capacity": 1, "proc_mean": 2.5},
+        ],
+        'interarrival_mean': INTERARRIVAL_MEAN,
+        'cost': 120  # relative cost units
+    },
+    'balanced': {
+        'name': 'Balanced Line',
+        'machines': [
+            {"name": "Cutting", "capacity": 2, "proc_mean": 3.0},
+            {"name": "Drilling", "capacity": 2, "proc_mean": 4.5},
+            {"name": "Assembly", "capacity": 3, "proc_mean": 6.0},
+            {"name": "Painting", "capacity": 2, "proc_mean": 2.5},
+        ],
+        'interarrival_mean': INTERARRIVAL_MEAN,
+        'cost': 350  # relative cost units
+    }
+}
