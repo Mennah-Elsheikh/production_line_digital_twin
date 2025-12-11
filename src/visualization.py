@@ -356,7 +356,7 @@ def plot_scenario_comparison(comparison_df, show=True):
     
     # 3. Cost vs Improvement (scatter)
     fig.add_trace(
-        go.Scatter(x=comparison_df['cost'], y=comparison_df['throughput_improvement_%'],
+        go.Scatter(x=comparison_df['implementation_cost'], y=comparison_df['throughput_improvement_%'],
                    mode='markers+text', text=comparison_df['scenario'],
                    textposition='top center', marker=dict(size=12, color='green'),
                    showlegend=False),
@@ -369,6 +369,9 @@ def plot_scenario_comparison(comparison_df, show=True):
                name='ROI', marker_color='purple', showlegend=False),
         row=2, col=2
     )
+    
+    fig.update_xaxes(title_text="Implementation Cost", row=2, col=1)
+    fig.update_yaxes(title_text="Throughput Improvement (%)", row=2, col=1)
     
     # Update axes
     fig.update_xaxes(title_text="Scenario", row=1, col=1)
@@ -389,5 +392,57 @@ def plot_scenario_comparison(comparison_df, show=True):
     
     if show:
         fig.show()
+    
+    return fig
+
+
+def plot_real_vs_sim(df_real, df_sim):
+    """
+    Plot comparison between Real and Simulated data
+    
+    Args:
+        df_real: Real data DataFrame
+        df_sim: Simulation data DataFrame
+    """
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=(
+            "Throughput Comparison (Boxplot)", "Lead Time Distribution", 
+            "Cumulative Production", "Lead Time Scatter"
+        )
+    )
+    
+    # 1. Throughput Comparison (Boxplot derived from hourly rates if possible, simplified here)
+    # Actually, let's use Lead Time Boxplot for robust comparison
+    fig.add_trace(go.Box(y=df_real['lead_time'], name='Real', marker_color='blue'), row=1, col=1)
+    fig.add_trace(go.Box(y=df_sim['lead_time'], name='Simulated', marker_color='orange'), row=1, col=1)
+    
+    # 2. Lead Time Distribution
+    fig.add_trace(go.Histogram(x=df_real['lead_time'], name='Real', opacity=0.75, marker_color='blue'), row=1, col=2)
+    fig.add_trace(go.Histogram(x=df_sim['lead_time'], name='Simulated', opacity=0.75, marker_color='orange'), row=1, col=2)
+    fig.update_layout(barmode='overlay')
+    
+    # 3. Cumulative Production
+    # Sort both
+    if 'finished' in df_real.columns and 'finished' in df_sim.columns:
+        real_sorted = df_real.sort_values('finished')
+        sim_sorted = df_sim.sort_values('finished')
+        
+        fig.add_trace(go.Scatter(x=real_sorted['finished'], y=np.arange(len(real_sorted)), 
+                                name='Real Production', line=dict(color='blue')), row=2, col=1)
+        fig.add_trace(go.Scatter(x=sim_sorted['finished'], y=np.arange(len(sim_sorted)), 
+                                name='Simulated Production', line=dict(color='orange', dash='dash')), row=2, col=1)
+    
+    # 4. Lead Time Scatter
+    fig.add_trace(go.Scatter(x=df_real.index, y=df_real['lead_time'], name='Real', mode='markers', marker_color='blue', opacity=0.5), row=2, col=2)
+    fig.add_trace(go.Scatter(x=df_sim.index, y=df_sim['lead_time'], name='Simulated', mode='markers', marker_color='orange', opacity=0.5), row=2, col=2)
+    
+    fig.update_layout(title="Digital Twin Validation: Real vs. Simulated", height=800)
+    
+    # Update axes
+    fig.update_yaxes(title_text="Lead Time (min)", row=1, col=1)
+    fig.update_xaxes(title_text="Lead Time (min)", row=1, col=2)
+    fig.update_xaxes(title_text="Time (minutes)", row=2, col=1)
+    fig.update_yaxes(title_text="Cumulative Production", row=2, col=1)
     
     return fig
