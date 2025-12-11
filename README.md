@@ -2,6 +2,8 @@
 
 An industrial-grade Discrete Event Simulation (DES) of a manufacturing production line. This Digital Twin replicates real-world dynamics including machine failures, warm-up periods, and operational costs, empowered by AI for automated optimization and validation logic for real-world accuracy.
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://digital-twin-line.streamlit.app/)
+
 ![Validation Dashboard](C:/Users/Sroor%20For%20Laptop/.gemini/antigravity/brain/a9244502-5abf-40e0-9893-dadd31ea5438/validation_dashboard.png)
 
 ## Key Features
