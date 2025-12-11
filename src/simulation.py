@@ -3,7 +3,7 @@ import simpy
 import pandas as pd
 import numpy as np
 from collections import defaultdict
-from config import SEED, SIM_TIME, INTERARRIVAL_MEAN, MACHINES, PROC_DISTRIBUTION
+from .config import SEED, SIM_TIME, INTERARRIVAL_MEAN, MACHINES, PROC_DISTRIBUTION
 
 random.seed(SEED)
 np.random.seed(SEED)
@@ -51,13 +51,22 @@ class ProductionLineModel:
         self.products = {}
         self.stats = []
         self.product_count = 0
+        
+        # Queue and WIP tracking
+        self.queue_snapshots = []  # Track queue lengths over time
+        self.wip_snapshots = []    # Track work-in-progress over time
+        self.monitor_interval = 5  # Monitor every 5 minutes
 
         # start station processes
         for i, machine in enumerate(self.machines):
             self.env.process(self.station_process(i))
 
-           # arrival process
+        # arrival process
         self.env.process(self.arrival_process())
+        
+        # monitoring process
+        self.env.process(self.monitor_process())
+
         
 
     def arrival_process(self):
@@ -69,6 +78,22 @@ class ProductionLineModel:
             self.product_count += 1
             # put into first queue
             yield self.store[0].put(p)
+
+    def monitor_process(self):
+        """Monitor queue lengths and WIP at regular intervals"""
+        while True:
+            yield self.env.timeout(self.monitor_interval)
+            
+            # Record queue lengths
+            queue_snapshot = {'time': self.env.now}
+            for i, (machine, store) in enumerate(zip(self.machines, self.store)):
+                queue_snapshot[f'{machine.name}_queue'] = len(store.items)
+            self.queue_snapshots.append(queue_snapshot)
+            
+            # Record WIP (products in system but not finished)
+            wip = self.product_count - len(self.finished.items)
+            self.wip_snapshots.append({'time': self.env.now, 'wip': wip})
+
 
     def station_process(self, idx):
         machine = self.machines[idx]
@@ -86,11 +111,17 @@ class ProductionLineModel:
                 # start service
                 service_start = self.env.now
                 product.timestamps[f'{machine.name}_service_start'] = service_start
+                
+                # Record waiting time in queue
+                wait_time = service_start - arrive
+                product.timestamps[f'{machine.name}_wait_time'] = wait_time
+                
                 machine.start_service()
                 proc_time = machine.sample_process_time()
                 yield self.env.timeout(proc_time)
                 machine.end_service()
                 product.timestamps[f'{machine.name}_service_end'] = self.env.now
+
 
 
                 # put to next queue
@@ -107,20 +138,20 @@ class ProductionLineModel:
         last_machine_name = self.machines[-1].name
         for pid, p in self.products.items():
             key_end = f'{last_machine_name}_service_end'
-        if key_end in p.timestamps:
-            entry = {
-            'id': pid,
-            'created': p.created_time,
-            'finished': p.timestamps[key_end],
-            'lead_time': p.timestamps[key_end] - p.created_time,
-            }
-            # Add per-machine times
-            for m in self.machines:
-                s = f'{m.name}_service_start'
-                e = f'{m.name}_service_end'
-                entry[f'{m.name}_start'] = p.timestamps.get(s, None)
-                entry[f'{m.name}_end'] = p.timestamps.get(e, None)
-            results.append(entry)
+            if key_end in p.timestamps:
+                entry = {
+                    'id': pid,
+                    'created': p.created_time,
+                    'finished': p.timestamps[key_end],
+                    'lead_time': p.timestamps[key_end] - p.created_time,
+                }
+                # Add per-machine times
+                for m in self.machines:
+                    s = f'{m.name}_service_start'
+                    e = f'{m.name}_service_end'
+                    entry[f'{m.name}_start'] = p.timestamps.get(s, None)
+                    entry[f'{m.name}_end'] = p.timestamps.get(e, None)
+                results.append(entry)
         df = pd.DataFrame(results)
         return df
     
@@ -136,6 +167,15 @@ class ProductionLineModel:
             })
         return pd.DataFrame(rows)
     
+    def get_queue_data(self):
+        """Return queue length snapshots as DataFrame"""
+        return pd.DataFrame(self.queue_snapshots)
+    
+    def get_wip_data(self):
+        """Return WIP snapshots as DataFrame"""
+        return pd.DataFrame(self.wip_snapshots)
+
+    
 
 def run_simulation(sim_time=SIM_TIME, verbose=False):
     env = simpy.Environment()
@@ -143,7 +183,9 @@ def run_simulation(sim_time=SIM_TIME, verbose=False):
     env.run(until=sim_time)
     df_results = model.collect_results()
     df_mstats = model.machine_stats()
+    df_queue = model.get_queue_data()
+    df_wip = model.get_wip_data()
     if verbose:
         print(df_mstats)
         print(df_results.head())
-    return df_results, df_mstats
+    return df_results, df_mstats, df_queue, df_wip
