@@ -169,6 +169,9 @@ def create_gantt_chart(df_results, machine_names, max_products=20, show=True):
     # Limit to first N products for readability
     df_sample = df_results.head(max_products)
     
+    # Base time for better visualization (e.g. today 8:00 AM)
+    base_time = pd.Timestamp.now().normalize() + pd.Timedelta(hours=8)
+    
     gantt_data = []
     for _, product in df_sample.iterrows():
         product_id = product['id']
@@ -177,16 +180,20 @@ def create_gantt_chart(df_results, machine_names, max_products=20, show=True):
             end_col = f'{machine}_end'
             
             if start_col in product and end_col in product:
-                start = product[start_col]
-                end = product[end_col]
+                start_val = product[start_col]
+                end_val = product[end_col]
                 
-                if pd.notna(start) and pd.notna(end):
+                if pd.notna(start_val) and pd.notna(end_val):
+                    # Convert minutes to datetime objects
+                    start_dt = base_time + pd.Timedelta(minutes=start_val)
+                    end_dt = base_time + pd.Timedelta(minutes=end_val)
+                    
                     gantt_data.append({
                         'Product': product_id,
                         'Machine': machine,
-                        'Start': start,
-                        'Finish': end,
-                        'Duration': end - start
+                        'Start': start_dt,
+                        'Finish': end_dt,
+                        'Duration Minutes': end_val - start_val
                     })
     
     if not gantt_data:
@@ -197,9 +204,10 @@ def create_gantt_chart(df_results, machine_names, max_products=20, show=True):
     fig = px.timeline(df_gantt, x_start='Start', x_end='Finish', y='Product', 
                       color='Machine',
                       title=f'Machine Schedule (First {max_products} Products)',
-                      labels={'Start': 'Time (minutes)'})
+                      hover_data=['Duration Minutes'])
     
     fig.update_yaxes(autorange="reversed")  # Products from top to bottom
+    fig.update_xaxes(title='Time')
     
     if show:
         fig.show()

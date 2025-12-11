@@ -30,16 +30,10 @@ class MachineStation:
         else:
             return self.proc_mean
         
-    def start_service(self):
-       # called when a unit begins service
-       self.last_start = self.env.now
-
-    def end_service(self):
-       # called when a unit ends service
-       if self.last_start is not None:
-           self.busy_time += self.env.now - self.last_start
-           self.last_start = None
-       self.processed += 1
+    def record_processing(self, duration):
+        """Record processing stats"""
+        self.busy_time += duration
+        self.processed += 1
 
 class ProductionLineModel:
     def __init__(self, env, machines_config, interarrival_mean):
@@ -59,7 +53,9 @@ class ProductionLineModel:
 
         # start station processes
         for i, machine in enumerate(self.machines):
-            self.env.process(self.station_process(i))
+            # Create a process for EACH unit of capacity
+            for _ in range(machine.resource.capacity):
+                self.env.process(self.station_process(i))
 
         # arrival process
         self.env.process(self.arrival_process())
@@ -76,6 +72,10 @@ class ProductionLineModel:
             p = Product(pid, self.env.now)
             self.products[pid] = p
             self.product_count += 1
+            
+            # Record queue enter time for first machine
+            p.timestamps[f'{self.machines[0].name}_queue_enter'] = self.env.now
+            
             # put into first queue
             yield self.store[0].put(p)
 
@@ -99,33 +99,38 @@ class ProductionLineModel:
         machine = self.machines[idx]
         in_store = self.store[idx]
         out_store = self.store[idx + 1] if idx + 1 < len(self.store) else self.finished
-
+        
         while True:
+            # Wait for product from queue (Store)
             product = yield in_store.get()
-            arrive = self.env.now
-            product.timestamps[f'{machine.name}_queue_enter'] = arrive
+            
+            # Service start
+            service_start = self.env.now
+            product.timestamps[f'{machine.name}_service_start'] = service_start
+            
+            # Calculate wait time (Time since entered queue)
+            queue_enter = product.timestamps.get(f'{machine.name}_queue_enter', service_start)
+            wait_time = service_start - queue_enter
+            product.timestamps[f'{machine.name}_wait_time'] = wait_time
+            
+            # Track busy time
+            # machine.start_service() removed - we record duration at end
+            
+            # Process
+            proc_time = machine.sample_process_time()
+            yield self.env.timeout(proc_time)
+            
+            # Record stats
+            machine.record_processing(proc_time)
+            product.timestamps[f'{machine.name}_service_end'] = self.env.now
 
+            # Prepare for next station
+            if idx + 1 < len(self.machines):
+                next_machine_name = self.machines[idx+1].name
+                product.timestamps[f'{next_machine_name}_queue_enter'] = self.env.now
 
-            with machine.resource.request() as req:
-                yield req
-                # start service
-                service_start = self.env.now
-                product.timestamps[f'{machine.name}_service_start'] = service_start
-                
-                # Record waiting time in queue
-                wait_time = service_start - arrive
-                product.timestamps[f'{machine.name}_wait_time'] = wait_time
-                
-                machine.start_service()
-                proc_time = machine.sample_process_time()
-                yield self.env.timeout(proc_time)
-                machine.end_service()
-                product.timestamps[f'{machine.name}_service_end'] = self.env.now
-
-
-
-                # put to next queue
-                yield out_store.put(product)
+            # put to next queue
+            yield out_store.put(product)
 
     def collect_results(self):
         # gather finished products
@@ -149,8 +154,10 @@ class ProductionLineModel:
                 for m in self.machines:
                     s = f'{m.name}_service_start'
                     e = f'{m.name}_service_end'
+                    w = f'{m.name}_wait_time'
                     entry[f'{m.name}_start'] = p.timestamps.get(s, None)
                     entry[f'{m.name}_end'] = p.timestamps.get(e, None)
+                    entry[f'{m.name}_wait_time'] = p.timestamps.get(w, 0.0)
                 results.append(entry)
         df = pd.DataFrame(results)
         return df
@@ -158,12 +165,16 @@ class ProductionLineModel:
     def machine_stats(self):
         rows = []
         for m in self.machines:
+            # Utilization = Total Busy Time / (Simulation Time * Capacity)
+            # This accounts for parallel processing capacity
+            util = (m.busy_time / (float(self.env.now) * m.resource.capacity)) if self.env.now > 0 else 0.0
+            
             rows.append({
-            'machine': m.name,
-            'capacity': m.resource.capacity,
-            'processed': m.processed,
-            'busy_time': m.busy_time,
-            'utilization': m.busy_time / float(self.env.now) if self.env.now>0 else 0.0
+                'machine': m.name,
+                'capacity': m.resource.capacity,
+                'processed': m.processed,
+                'busy_time': m.busy_time,
+                'utilization': util
             })
         return pd.DataFrame(rows)
     
