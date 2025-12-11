@@ -8,7 +8,7 @@ INTERARRIVAL_MEAN = 2.0 # mean minutes between new parts
 
 # Machines definition: (capacity, mean_processing_time)
 # capacity = number of parallel identical machines
-MACHINES = [
+MACHINES =  [
 {"name": "Cutting", "capacity": 1, "proc_mean": 3.0},
 {"name": "Drilling", "capacity": 1, "proc_mean": 4.5},
 {"name": "Assembly", "capacity": 2, "proc_mean": 6.0},
