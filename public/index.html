@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Line Digital Twin - Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            grid-column: 1 / -1;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0 20px 0;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .chart-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .machine-table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .machine-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .machine-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .machine-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .machine-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error {
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.show {
+            display: block;
+        }
+
+        .bottleneck-alert {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 20px;
+        }
+
+        .bottleneck-alert h3 {
+            color: #856404;
+            margin-bottom: 5px;
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: 2px solid white;
+            color: #667eea;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            opacity: 0.7;
+        }
+
+        .mode-btn.active {
+            opacity: 1;
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .mode-btn:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🏭 Digital Twin Dashboard</h1>
+
+        <!-- Mode Selector -->
+        <div class="mode-selector" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 30px;">
+            <button class="mode-btn active" onclick="switchMode('simulation')">🎮 Simulation</button>
+            <button class="mode-btn" onclick="switchMode('optimization')">🧠 AI Optimization</button>
+            <button class="mode-btn" onclick="switchMode('validation')">👓 Digital Twin</button>
+        </div>
+
+        <!-- SIMULATION MODE -->
+        <div id="mode-simulation" class="mode-content active">
+            <p class="subtitle">Production Line Simulator</p>
+
+
+            <form id="simForm">
+                <div class="controls">
+                    <div class="form-group">
+                        <label for="simTime">Simulation Time (min)</label>
+                        <input type="number" id="simTime" value="480" min="60" max="1440" step="60">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="interarrival">Arrival Rate (min)</label>
+                        <input type="number" id="interarrival" value="3.5" min="0.5" max="10" step="0.5">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="warmup">Warm-up (min)</label>
+                        <input type="number" id="warmup" value="60" min="0" max="120" step="10">
+                    </div>
+
+                    <button type="submit" class="btn" id="runBtn">▶ Run Simulation</button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Running simulation... This may take a few seconds.</p>
+            </div>
+
+            <!-- Financial Tab -->
+            <div id="financial" class="tab-content">
+                <h3 style="margin-bottom: 15px; color: #333;">💰 Cost Breakdown</h3>
+                <div class="metrics-grid" id="financialMetrics"></div>
+                <div class="chart-container">
+                    <canvas id="costPieChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Gantt Chart Tab -->
+            <div id="gantt" class="tab-content">
+                <h3 style="margin-bottom: 15px; color: #333;">📊 Machine Schedule (First 30 Products)</h3>
+                <div class="chart-container" style="height: 600px;">
+                    <canvas id="ganttChart"></canvas>
+                </div>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="dashboard" id="dashboard">
+                <div class="metrics-grid" id="metricsGrid"></div>
+
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('overview')">Overview</div>
+                    <div class="tab" onclick="switchTab('machines')">Machines</div>
+                    <div class="tab" onclick="switchTab('bottlenecks')">Bottlenecks</div>
+                    <div class="tab" onclick="switchTab('financial')">💰 Financial</div>
+                    <div class="tab" onclick="switchTab('gantt')">📊 Schedule</div>
+                </div>
+
+                <div id="overview" class="tab-content active">
+                    <!-- Machine Status Analysis -->
+                    <div class="metrics-grid">
+                        <div class="chart-container" style="grid-column: span 1;">
+                            <canvas id="utilizationChart"></canvas>
+                        </div>
+                        <div class="chart-container" style="grid-column: span 1;">
+                            <canvas id="throughputChart"></canvas>
+                        </div>
+                        <div class="chart-container" style="grid-column: span 1;">
+                            <canvas id="machineStatusChart"></canvas>
+                        </div>
+                        <div class="chart-container" style="grid-column: span 1;">
+                            <canvas id="leadTimeChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Time Series Charts -->
+                    <h2 style="margin: 30px 0 15px; color: #333;">📈 Time Series Analysis</h2>
+                    <div class="chart-container" style="margin-bottom: 20px;">
+                        <canvas id="queueChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="wipChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="machines" class="tab-content">
+                    <table class="machine-table" id="machineTable">
+                        <thead>
+                            <tr>
+                                <th>Machine</th>
+                                <th>Utilization</th>
+                                <th>Processed</th>
+                                <th>Capacity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="machineTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div id="bottlenecks" class="tab-content">
+                    <div id="bottleneckInfo"></div>
+                    <div class="chart-container">
+                        <canvas id="bottleneckChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- OPTIMIZATION MODE -->
+    <div id="mode-optimization" class="mode-content" style="display: none;">
+        <div class="metrics-grid" style="margin-bottom: 20px;">
+            <div class="metric-card" style="background: linear-gradient(135deg, #FF6B6B 0%, #EE5253 100%);">
+                <div class="metric-label">Target Throughput</div>
+                <div class="metric-value">Maximize</div>
+            </div>
+            <div class="metric-card" style="background: linear-gradient(135deg, #4834d4 0%, #686de0 100%);">
+                <div class="metric-label">Constraints</div>
+                <div class="metric-value">Max Cost: 1000</div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="runOptimization()" id="optimizeBtn" style="width: 100%; margin-bottom: 20px;">🚀
+            Finding Best Configuration (AI)</button>
+
+        <div id="opt-results" style="display: none;">
+            <h3 style="margin-bottom: 15px; color: #333;">🏆 Best Configuration Found</h3>
+            <div id="best-config-card" class="bottleneck-alert"
+                style="background: #d4edda; border-left-color: #28a745;"></div>
+
+            <h3 style="margin: 20px 0 10px; color: #333;">Top Alternatives</h3>
+            <table class="machine-table" id="optTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Throughput</th>
+                        <th>Cost</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="optTableBody"></tbody>
+            </table>
+        </div>
+        <div id="opt-loading" class="loading">
+            <div class="spinner"></div>
+            <p>Running Genetic Algorithm... (This may take 10-20s)</p>
+        </div>
+    </div>
+
+    <!-- VALIDATION MODE -->
+    <div id="mode-validation" class="mode-content" style="display: none;">
+        <p class="subtitle" style="margin-bottom: 20px;">Real-World Data vs Simulation</p>
+        <button class="btn" onclick="runValidation()" id="validateBtn"
+            style="width: 100%; margin-bottom: 20px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">🧪
+            Validate Digital Twin</button>
+
+        <div id="val-results" style="display: none;">
+            <div class="metrics-grid" id="valMetricsGrid"></div>
+
+            <div class="chart-container">
+                <canvas id="valThroughputChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="valLeadTimeChart"></canvas>
+            </div>
+        </div>
+        <div id="val-loading" class="loading">
+            <div class="spinner"></div>
+            <p>Comparing Real Data vs Simulation...</p>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        // Chart utility functions injected directly
+        function createTimeSeriesChart(canvasId, label, color, dataPoints) {
+            const ctx = document.getElementById(canvasId);
+            if (window[canvasId] && typeof window[canvasId].destroy === 'function') {
+                window[canvasId].destroy();
+            }
+
+            window[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dataPoints.map(d => Math.round(d.time)),
+                    datasets: [{
+                        label: label,
+                        data: dataPoints.map(d => d.value),
+                        borderColor: color,
+                        backgroundColor: color.replace('1)', '0.1').replace(')', ', 0.1)'),
+                        borderWidth: 2,
+                        fill: true,
+                        pointRadius: 1, // small points
+                        tension: 0.4    // smooth curve
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: label + ' Over Time',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (minutes)'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createCostPieChart(financial) {
+            const ctx = document.getElementById('costPieChart');
+            if (window.costPieChart instanceof Chart) window.costPieChart.destroy();
+
+            window.costPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Labor', 'Energy', 'Downtime', 'WIP Holding'],
+                    datasets: [{
+                        data: [
+                            financial.labor_cost,
+                            financial.energy_cost,
+                            financial.downtime_cost,
+                            financial.holding_cost
+                        ],
+                        backgroundColor: [
+                            '#667eea',
+                            '#f093fb',
+                            '#fa709a',
+                            '#fee140'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: 'Operational Cost Distribution', font: { size: 16 } },
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function createGanttChart(ganttData) {
+            const ctx = document.getElementById('ganttChart');
+            if (window.ganttChart instanceof Chart) window.ganttChart.destroy();
+
+            // Group by machine
+            const machines = [...new Set(ganttData.map(d => d.machine))];
+            const datasets = machines.map((machine, idx) => {
+                const machineData = ganttData.filter(d => d.machine === machine);
+                return {
+                    label: machine,
+                    data: machineData.map(d => ({ x: [d.start, d.end], y: d.product })),
+                    backgroundColor: `hsla(${idx * 60}, 70%, 60%, 0.8)`,
+                    borderWidth: 1,
+                    borderColor: '#333'
+                };
+            });
+
+            window.ganttChart = new Chart(ctx, {
+                type: 'bar',
+                data: { datasets },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Machine Schedule Timeline', font: { size: 16 } },
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const data = context.raw;
+                                    return `${context.dataset.label}: ${data.x[0].toFixed(1)} - ${data.x[1].toFixed(1)} min (Duration: ${(data.x[1] - data.x[0]).toFixed(1)} min)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: 'Time (minutes)' },
+                            beginAtZero: true
+                        },
+                        y: {
+                            title: { display: true, text: 'Product ID' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Use relative URLs for production (Vercel), absolute for local development
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_BASE = isLocal ? 'http://localhost:8000' : '';
+        const API_URL = `${API_BASE}/api/simulate`;
+        const API_OPT_URL = `${API_BASE}/api/optimize`;
+        const API_VAL_URL = `${API_BASE}/api/validate`;
+        let currentData = null;
+
+        function switchMode(mode) {
+            // Update buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update content visibility
+            document.querySelectorAll('.mode-content').forEach(content => content.style.display = 'none');
+            document.getElementById(`mode-${mode}`).style.display = 'block';
+        }
+
+        async function runOptimization() {
+            document.getElementById('opt-results').style.display = 'none';
+            document.getElementById('opt-loading').style.display = 'block';
+            document.getElementById('optimizeBtn').disabled = true;
+
+            const simTime = parseInt(document.getElementById('simTime').value) || 480;
+
+            try {
+                const response = await fetch(API_OPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sim_time: simTime })
+                });
+
+                if (!response.ok) throw new Error('Optimization failed');
+                const data = await response.json();
+
+                // Render Best Config
+                const best = data.best_config;
+                let bestHtml = `<h3>Confidence: High</h3><ul style="list-style: none; padding: 0;">`;
+                for (const [key, val] of Object.entries(best)) {
+                    if (key.includes('capacity')) {
+                        bestHtml += `<li><strong>${key.replace('_capacity', '').toUpperCase()}:</strong> ${val} units</li>`;
+                    }
+                }
+                bestHtml += `</ul><p style="margin-top: 10px;"><strong>Throughput:</strong> ${best.throughput_mean.toFixed(1)} items/hr</p>`;
+                document.getElementById('best-config-card').innerHTML = bestHtml;
+
+                // Render Table
+                const rows = data.top_configs.map((c, i) => `
+                    <tr>
+                        <td>#${i + 1}</td>
+                        <td>${c.throughput_mean.toFixed(1)} /hr</td>
+                        <td>${c.implementation_cost}</td>
+                        <td>${c.score.toFixed(3)}</td>
+                    </tr>
+                `).join('');
+                document.getElementById('optTableBody').innerHTML = rows;
+
+                document.getElementById('opt-results').style.display = 'block';
+
+            } catch (error) {
+                alert('Error running optimization: ' + error.message);
+            } finally {
+                document.getElementById('opt-loading').style.display = 'none';
+                document.getElementById('optimizeBtn').disabled = false;
+            }
+        }
+
+        async function runValidation() {
+            document.getElementById('val-results').style.display = 'none';
+            document.getElementById('val-loading').style.display = 'block';
+            document.getElementById('validateBtn').disabled = true;
+
+            const simTime = parseInt(document.getElementById('simTime').value) || 480;
+
+            try {
+                const response = await fetch(API_VAL_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sim_time: simTime })
+                });
+
+                if (!response.ok) throw new Error('Validation failed');
+                const data = await response.json();
+
+                // Metrics
+                const m = data.metrics;
+                const metricsHTML = [
+                    createMetricCard('Validation Score', `${m['validation_score'].toFixed(1)}%`),
+                    createMetricCard('Throughput Error', `${m['throughput_error_%'].toFixed(1)}%`),
+                    createMetricCard('Lead Time Error', `${m['lead_time_error_%'].toFixed(1)}%`)
+                ];
+                document.getElementById('valMetricsGrid').innerHTML = metricsHTML.join('');
+
+                // 1. Throughput Comparison Chart
+                const ctxTh = document.getElementById('valThroughputChart');
+                if (window.valThroughputChart instanceof Chart) window.valThroughputChart.destroy();
+                window.valThroughputChart = new Chart(ctxTh, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Real World', 'Simulation'],
+                        datasets: [{
+                            label: 'Throughput (items/hr)',
+                            data: [data.comparison.throughput.real, data.comparison.throughput.sim],
+                            backgroundColor: ['#36a2eb', '#ff6384']
+                        }]
+                    },
+                    options: { responsive: true, plugins: { title: { display: true, text: 'Throughput Comparison' } } }
+                });
+
+                // 2. Lead Time Histogram Comparison
+                const comp = data.comparison.lead_time_hist;
+                const ctxLt = document.getElementById('valLeadTimeChart');
+                if (window.valLeadTimeChart instanceof Chart) window.valLeadTimeChart.destroy();
+                window.valLeadTimeChart = new Chart(ctxLt, {
+                    type: 'bar',
+                    data: {
+                        labels: comp.labels,
+                        datasets: [
+                            {
+                                label: 'Real World',
+                                data: comp.real,
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                            },
+                            {
+                                label: 'Simulation',
+                                data: comp.sim,
+                                backgroundColor: 'rgba(255, 99, 132, 0.6)'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { title: { display: true, text: 'Lead Time Distribution Comparison' } },
+                        scales: { x: { stacked: false }, y: { beginAtZero: true } }
+                    }
+                });
+
+                document.getElementById('val-results').style.display = 'block';
+
+            } catch (error) {
+                alert('Error running validation: ' + error.message);
+                console.error(error);
+            } finally {
+                document.getElementById('val-loading').style.display = 'none';
+                document.getElementById('validateBtn').disabled = false;
+            }
+        }
+
+        function switchTab(tabName) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Add active class to selected tab
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function createMetricCard(label, value) {
+            return `
+                <div class="metric-card">
+                    <div class="metric-label">${label}</div>
+                    <div class="metric-value">${value}</div>
+                </div>
+            `;
+        }
+
+        function updateDashboard(data) {
+            currentData = data;
+            const metrics = data.metrics;
+
+            // Update metric cards
+            const metricsHTML = [
+                createMetricCard('Throughput', `${metrics.throughput_per_hour} items/hr`),
+                createMetricCard('Completed', metrics.total_completed),
+                createMetricCard('Lead Time', `${metrics.avg_lead_time} min`),
+                createMetricCard('Utilization', `${(metrics.avg_utilization * 100).toFixed(1)}%`),
+                createMetricCard('Avg WIP', metrics.avg_wip),
+                createMetricCard('Max WIP', metrics.max_wip)
+            ];
+            document.getElementById('metricsGrid').innerHTML = metricsHTML.join('');
+
+            // Update machine table
+            const machineRows = data.machines.map(m => `
+                <tr>
+                    <td><strong>${m.machine}</strong></td>
+                    <td>${(m.utilization * 100).toFixed(1)}%</td>
+                    <td>${m.processed}</td>
+                    <td>${m.capacity}</td>
+                </tr>
+            `).join('');
+            document.getElementById('machineTableBody').innerHTML = machineRows;
+
+            // Update bottleneck info
+            if (data.bottleneck) {
+                const bottleneckHTML = `
+                    <div class="bottleneck-alert">
+                        <h3>⚠️ Critical Bottleneck Detected</h3>
+                        <p><strong>${data.bottleneck.machine}</strong> - Score: ${data.bottleneck.score} | Utilization: ${(data.bottleneck.utilization * 100).toFixed(1)}%</p>
+                    </div>
+                `;
+                document.getElementById('bottleneckInfo').innerHTML = bottleneckHTML;
+            }
+
+            // Create charts
+            createUtilizationChart(data.machines);
+            createBottleneckChart(data.machines);
+
+            // Create Time Series Charts
+            if (data.charts) {
+                // Production (Throughput) Chart - Now actually rendered!
+                if (data.charts.production_over_time) {
+                    createTimeSeriesChart('throughputChart', 'Cumulative Production', 'rgba(54, 162, 235, 1)', data.charts.production_over_time);
+                }
+
+                createTimeSeriesChart('queueChart', 'Total Queue Length', 'rgba(255, 99, 132, 1)', data.charts.queue_over_time);
+                createTimeSeriesChart('wipChart', 'Work In Progress (WIP)', 'rgba(75, 192, 192, 1)', data.charts.wip_over_time);
+                createTimeSeriesChart('wipChart', 'Work In Progress (WIP)', 'rgba(75, 192, 192, 1)', data.charts.wip_over_time);
+
+                // Lead Time Histogram
+                if (data.charts.lead_time_hist) {
+                    createHistogram(
+                        'leadTimeChart',
+                        'Lead Time Distribution',
+                        data.charts.lead_time_hist.labels,
+                        data.charts.lead_time_hist.data,
+                        'rgba(153, 102, 255, 0.6)'
+                    );
+                }
+
+                // Machine Status Breakdown
+                if (data.charts.machine_status) {
+                    createStackedBarChart('machineStatusChart', 'Machine Status Breakdown', data.charts.machine_status);
+                }
+            }
+
+            // Financial Analysis
+            if (data.financial) {
+                const f = data.financial;
+                const metricsHTML = [
+                    createMetricCard('Total Cost', `$${f.total_cost.toFixed(2)}`),
+                    createMetricCard('Labor Cost', `$${f.labor_cost.toFixed(2)}`),
+                    createMetricCard('Energy Cost', `$${f.energy_cost.toFixed(2)}`),
+                    createMetricCard('Downtime Cost', `$${f.downtime_cost.toFixed(2)}`)
+                ];
+                document.getElementById('financialMetrics').innerHTML = metricsHTML.join('');
+                createCostPieChart(data.financial);
+            }
+
+            // Gantt Chart
+            if (data.charts && data.charts.gantt && data.charts.gantt.length > 0) {
+                createGanttChart(data.charts.gantt);
+            }
+
+            // Show dashboard
+            document.getElementById('dashboard').classList.add('show');
+        }
+
+        function createHistogram(canvasId, label, labels, dataPoints, color) {
+            const ctx = document.getElementById(canvasId);
+            if (window[canvasId] && typeof window[canvasId].destroy === 'function') {
+                window[canvasId].destroy();
+            }
+
+            window[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: dataPoints,
+                        backgroundColor: color,
+                        borderWidth: 1,
+                        barPercentage: 1.0,
+                        categoryPercentage: 1.0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Lead Time Distribution',
+                            font: { size: 16 }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Lead Time (minutes)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Frequency' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createStackedBarChart(canvasId, title, labels, busyData, idleData) {
+            const ctx = document.getElementById(canvasId);
+            if (window[canvasId] && typeof window[canvasId].destroy === 'function') {
+                window[canvasId].destroy();
+            }
+
+            window[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Busy (%)',
+                            data: busyData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        },
+                        {
+                            label: 'Idle (%)',
+                            data: idleData,
+                            backgroundColor: 'rgba(201, 203, 207, 0.7)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: title,
+                            font: { size: 16 }
+                        },
+                    },
+                    scales: {
+                        x: { stacked: true },
+                        y: {
+                            stacked: true,
+                            max: 100,
+                            ticks: { callback: v => v + '%' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createUtilizationChart(machines) {
+            const ctx = document.getElementById('utilizationChart');
+            if (window.utilizationChart && typeof window.utilizationChart.destroy === 'function') {
+                window.utilizationChart.destroy();
+            }
+
+            window.utilizationChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: machines.map(m => m.machine),
+                    datasets: [{
+                        label: 'Utilization (%)',
+                        data: machines.map(m => m.utilization * 100),
+                        backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Machine Utilization',
+                            font: { size: 18 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function (value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createBottleneckChart(machines) {
+            const ctx = document.getElementById('bottleneckChart');
+            if (window.bottleneckChart && typeof window.bottleneckChart.destroy === 'function') {
+                window.bottleneckChart.destroy();
+            }
+
+            window.bottleneckChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: machines.map(m => m.machine),
+                    datasets: [{
+                        label: 'Items Processed',
+                        data: machines.map(m => m.processed),
+                        backgroundColor: 'rgba(118, 75, 162, 0.6)',
+                        borderColor: 'rgba(118, 75, 162, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Items Processed by Machine',
+                            font: { size: 18 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('simForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const simTime = parseInt(document.getElementById('simTime').value);
+            const interarrival = parseFloat(document.getElementById('interarrival').value);
+            const warmup = parseFloat(document.getElementById('warmup').value);
+
+            // Hide dashboard and errors
+            document.getElementById('dashboard').classList.remove('show');
+            document.getElementById('error').classList.remove('show');
+
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('runBtn').disabled = true;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sim_time: simTime,
+                        interarrival_mean: interarrival,
+                        warmup_time: warmup
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server error: ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                updateDashboard(data);
+
+            } catch (error) {
+                const errorEl = document.getElementById('error');
+                errorEl.textContent = `Error: ${error.message}`;
+                errorEl.classList.add('show');
+            } finally {
+                // Hide loading
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('runBtn').disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>
