@@ -1,10 +1,7 @@
-simpy
-pandas
-numpy
-matplotlib
-plotly
-scipy
-streamlit
-fastapi
-uvicorn[standard]
-pydantic
+# Minimal requirements for Vercel serverless deployment
+fastapi==0.104.1
+uvicorn==0.24.0
+simpy==4.1.1
+numpy==1.26.2
+pandas==2.1.3
+pydantic==2.5.0
