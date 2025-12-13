@@ -1,6 +1,11 @@
-# Vercel-specific requirements - minimal dependencies compatible with Python 3.13
+# Requirements for both Vercel and Streamlit Cloud
+# Python 3.13 compatible versions
+streamlit>=1.30.0
 fastapi>=0.104.1
 pydantic>=2.10.0
 simpy>=4.1.1
 numpy>=1.26.0
 pandas>=2.2.0
+matplotlib>=3.7.0
+plotly>=5.18.0
+scipy>=1.11.0
