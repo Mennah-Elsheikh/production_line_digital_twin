@@ -90,15 +90,11 @@ streamlit run app_launcher.py
 
 ---
 
+
 ## 📂 Project Structure
 
-*   `src/`: Core simulation logic (SimPy models, Optimization engine).
-*   `public/`: HTML/CSS/JS for the Web Dashboard.
-*   `api/`: FastAPI backend (Serving the Web Dashboard).
-*   `app_launcher.py`: Entry point for Streamlit.
-*   `requirements-local.txt`: All dependencies for local dev.
-*   `requirements.txt`: Dependencies for Streamlit Cloud.
-*   `api/requirements.txt`: Minimal dependencies for Vercel.
+```text
+production_line_digital_twin/
 ├── app_launcher.py         # Entry point for Streamlit App
 ├── src/
 │   ├── main.py             # CLI Entry point
@@ -109,10 +105,15 @@ streamlit run app_launcher.py
 │   ├── animation.py        # Real-time Visualization Logic
 │   ├── generate_real_data.py # Synthetic Data Generator
 │   └── config.py           # Global Configuration (Times, Costs, Machines)
+├── public/                 # HTML/CSS/JS for the Web Dashboard
+├── api/                    # FastAPI backend (Serving the Web Dashboard)
 ├── data/
 │   ├── results/            # Simulation Outputs (Metrics, CSVs)
 │   └── raw/                # Real-world data for validation
-└── README.md
+├── requirements-local.txt  # Dependencies for local dev
+├── requirements.txt        # Dependencies for Streamlit Cloud
+└── api/
+    └── requirements.txt    # Minimal dependencies for Vercel
 ```
 
 ## Configuration
