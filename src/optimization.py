@@ -350,7 +350,12 @@ def grid_search_optimization(
     
     # Find best configuration (minimize cost, maximize throughput)
     # Score = throughput / (1 + cost)
+    # Add score to valid_configs first
     valid_configs['score'] = valid_configs['throughput_mean'] / (1 + valid_configs['implementation_cost'])
+    
+    # Also add score to full results for API analysis/sorting
+    df_results['score'] = df_results['throughput_mean'] / (1 + df_results['implementation_cost'])
+    
     best_config = valid_configs.loc[valid_configs['score'].idxmax()]
     
     if verbose:
