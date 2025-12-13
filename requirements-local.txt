@@ -1,0 +1,11 @@
+# Local development requirements (full set)
+simpy
+pandas
+numpy
+matplotlib
+plotly
+scipy
+streamlit
+fastapi
+uvicorn[standard]
+pydantic
