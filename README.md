@@ -44,37 +44,61 @@ pip install -r requirements.txt
 - `pandas` / `numpy` (Analytics)
 
 ## Usage
+## 🌟 Features
 
-### 🚀 Web Application (Recommended)
-The easiest way to explore all features (Simulation, AI, Validation).
+### 1. Modern Web Dashboard (The "Twin")
+*   **Real-time Monitoring:** Throughput, Utilization, WIP tracking.
+*   **Interactive Visualizations:** dynamic charts and bottleneck analysis.
+*   **AI Optimization:** 'Optimize' mode to auto-tune machine parameters.
+*   **Tech Stack:** HTML5/JS Frontend + FastAPI Backend.
+
+### 2. Streamlit Data Science Lab (The "Brain")
+*   **Deep Simulation Control:** Fine-tune simulation parameters (seeds, run times).
+*   **Statistical Analysis:** Histograms, lead time distribution, confidence intervals.
+*   **Validation:** Compare digital twin results against real-world datasets.
+*   **Tech Stack:** Streamlit + SimPy + Pandas + Matplotlib.
+
+---
+
+## 🚀 Quick Start
+
+### Local Installation
 ```bash
+# 1. Clone repo
+git clone https://github.com/Mennah-Elsheikh/production_line_digital_twin.git
+cd production_line_digital_twin
+
+# 2. Install dependencies
+pip install -r requirements-local.txt
+
+# 3. Run Everything!
+# Terminal 1 (API):
+uvicorn api.index:app --reload
+
+# Terminal 2 (Web Frontend):
+python -m http.server 8080 --directory public
+
+# Terminal 3 (Streamlit):
 streamlit run app_launcher.py
 ```
-*Accessible at http://localhost:8501*
 
-### 💻 Command Line Interface (CLI)
+### 🌐 Live Demos
+| Platform | Feature | URL |
+|----------|---------|-----|
+| **Vercel** | Web Dashboard | [Live Demo](https://production-line-digital-twin-g2o9.vercel.app/) |
+| **Streamlit Cloud** | Simulation Lab | [Live App](https://digital-twin-line.streamlit.app/) |
 
-**1. Single Simulation Run**
-Run a detailed simulation with default settings.
-```bash
-python -m src.main
-```
+---
 
-**2. AI Optimization Mode**
-Automatically find the best machine configuration.
-```bash
-python -m src.main --ai-optimize
-```
+## 📂 Project Structure
 
-**3. Generate Synthetic "Real" Data**
-Create a test CSV to try the Validation mode.
-```bash
-python -m src.generate_real_data
-```
-
-## Project Structure
-```
-production_line_digital_twin/
+*   `src/`: Core simulation logic (SimPy models, Optimization engine).
+*   `public/`: HTML/CSS/JS for the Web Dashboard.
+*   `api/`: FastAPI backend (Serving the Web Dashboard).
+*   `app_launcher.py`: Entry point for Streamlit.
+*   `requirements-local.txt`: All dependencies for local dev.
+*   `requirements.txt`: Dependencies for Streamlit Cloud.
+*   `api/requirements.txt`: Minimal dependencies for Vercel.
 ├── app_launcher.py         # Entry point for Streamlit App
 ├── src/
 │   ├── main.py             # CLI Entry point
