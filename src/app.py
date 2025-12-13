@@ -175,10 +175,12 @@ def main():
                 )
             
             with col2:
+                avg_lt = metrics.get('avg_lead_time', 0) or 0
+                std_lt = metrics.get('std_lead_time', 0) or 0
                 st.metric(
                     "Avg Lead Time",
-                    f"{metrics['avg_lead_time']:.1f} min",
-                    f"±{metrics['std_lead_time']:.1f} min"
+                    f"{avg_lt:.1f} min",
+                    f"±{std_lt:.1f} min"
                 )
             
             with col3:
