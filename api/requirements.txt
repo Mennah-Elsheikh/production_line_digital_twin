@@ -1,0 +1,6 @@
+# Vercel-specific requirements (Minimal)
+fastapi>=0.104.1
+pydantic>=2.10.0
+simpy>=4.1.1
+numpy>=1.26.0
+pandas>=2.2.0
